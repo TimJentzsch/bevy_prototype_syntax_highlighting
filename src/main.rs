@@ -2,7 +2,9 @@ use bevy::asset::AssetServerSettings;
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
 use syntect::easy::HighlightLines;
-use syntect::highlighting::{Color as SyntectColor, Style as SyntectStyle, Theme, ThemeSet};
+use syntect::highlighting::{
+    Color as SyntectColor, FontStyle, Style as SyntectStyle, Theme, ThemeSet,
+};
 use syntect::parsing::SyntaxSet;
 use syntect::util::LinesWithEndings;
 
@@ -52,11 +54,12 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
     // Fonts
     let font_regular: Handle<Font> = asset_server.load("fonts/fira_mono/FiraMono-Regular.ttf");
+    let font_bold: Handle<Font> = asset_server.load("fonts/fira_mono/FiraMono-Bold.ttf");
     let font_size = 20.0;
 
     // Theme
     let theme_set = ThemeSet::load_defaults();
-    let theme = &theme_set.themes["base16-ocean.dark"];
+    let theme = &theme_set.themes["Solarized (dark)"];
 
     // The highlighted lines of a Bevy UI code file
     // The first 3 lines contain licensing information, we can skip them for the UI
@@ -87,7 +90,11 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                         *text,
                         TextStyle {
                             color: syntect_color_to_bevy_color(style.foreground),
-                            font: font_regular.clone(),
+                            font: if style.font_style == FontStyle::BOLD {
+                                font_bold.clone()
+                            } else {
+                                font_regular.clone()
+                            },
                             font_size,
                         },
                     ))
