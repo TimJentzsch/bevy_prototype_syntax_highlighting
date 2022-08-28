@@ -1,6 +1,10 @@
 use bevy::asset::AssetServerSettings;
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
+use syntect::easy::HighlightLines;
+use syntect::highlighting::{Color as SyntectColor, Style as SyntectStyle, ThemeSet};
+use syntect::parsing::SyntaxSet;
+use syntect::util::LinesWithEndings;
 
 const CODE: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/code.rs"));
 
@@ -18,6 +22,34 @@ fn main() {
         .run();
 }
 
+/// Apply syntax highlighting to the code
+fn highlight_code(code: &str) -> Vec<Vec<(SyntectStyle, &str)>> {
+    let syntax_set = SyntaxSet::load_defaults_newlines();
+    let rust = syntax_set.find_syntax_by_extension("rs").unwrap();
+
+    let theme_set = ThemeSet::load_defaults();
+    let theme = &theme_set.themes["base16-ocean.dark"];
+
+    let mut regions = Vec::new();
+    let mut highlighter = HighlightLines::new(rust, theme);
+
+    for line in LinesWithEndings::from(code) {
+        let mut line_regions = Vec::new();
+
+        for region in highlighter.highlight_line(line, &syntax_set).unwrap() {
+            line_regions.push(region);
+        }
+
+        regions.push(line_regions);
+    }
+
+    regions
+}
+
+fn syntect_color_to_bevy_color(color: SyntectColor) -> Color {
+    Color::rgba_u8(color.r, color.g, color.b, color.a)
+}
+
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn_bundle(Camera2dBundle::default());
 
@@ -28,9 +60,10 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     // Colors
     let background_color = Color::hex("121212").unwrap().into();
 
-    // The lines of a Bevy UI code file
+    // The highlighted lines of a Bevy UI code file
     // The first 3 lines contain licensing information, we can skip them for the UI
-    let lines = CODE.split('\n').skip(3);
+    let highlighted_lines = highlight_code(CODE);
+    let highlighted_lines = highlighted_lines.iter().skip(3);
 
     // Root with background color
     commands
@@ -47,7 +80,21 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             ..default()
         })
         .with_children(|parent| {
-            for line in lines {
+            for line in highlighted_lines {
+                let mut sections = Vec::new();
+
+                // Convert the highlighted lines into text sections
+                for (style, text) in line {
+                    sections.push(TextSection::new(
+                        *text,
+                        TextStyle {
+                            color: syntect_color_to_bevy_color(style.foreground),
+                            font: font_regular.clone(),
+                            font_size,
+                        },
+                    ))
+                }
+
                 // Wrapper for each line
                 parent
                     .spawn_bundle(NodeBundle {
@@ -64,14 +111,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                     })
                     .with_children(|parent| {
                         // The actual line text
-                        parent.spawn_bundle(TextBundle::from_section(
-                            line,
-                            TextStyle {
-                                font: font_regular.clone(),
-                                font_size,
-                                color: Color::WHITE,
-                            },
-                        ));
+                        parent.spawn_bundle(TextBundle::from_sections(sections));
                     });
             }
         });

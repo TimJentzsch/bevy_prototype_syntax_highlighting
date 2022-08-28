@@ -8,6 +8,7 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 bevy = "0.8.1"
+syntect = "5.0.0"
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]
