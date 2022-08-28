@@ -2,7 +2,7 @@ use bevy::asset::AssetServerSettings;
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
 use syntect::easy::HighlightLines;
-use syntect::highlighting::{Color as SyntectColor, Style as SyntectStyle, ThemeSet};
+use syntect::highlighting::{Color as SyntectColor, Style as SyntectStyle, Theme, ThemeSet};
 use syntect::parsing::SyntaxSet;
 use syntect::util::LinesWithEndings;
 
@@ -23,12 +23,9 @@ fn main() {
 }
 
 /// Apply syntax highlighting to the code
-fn highlight_code(code: &str) -> Vec<Vec<(SyntectStyle, &str)>> {
+fn highlight_code<'c, 't>(code: &'c str, theme: &'t Theme) -> Vec<Vec<(SyntectStyle, &'c str)>> {
     let syntax_set = SyntaxSet::load_defaults_newlines();
     let rust = syntax_set.find_syntax_by_extension("rs").unwrap();
-
-    let theme_set = ThemeSet::load_defaults();
-    let theme = &theme_set.themes["base16-ocean.dark"];
 
     let mut regions = Vec::new();
     let mut highlighter = HighlightLines::new(rust, theme);
@@ -57,12 +54,13 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     let font_regular: Handle<Font> = asset_server.load("fonts/fira_mono/FiraMono-Regular.ttf");
     let font_size = 20.0;
 
-    // Colors
-    let background_color = Color::hex("121212").unwrap().into();
+    // Theme
+    let theme_set = ThemeSet::load_defaults();
+    let theme = &theme_set.themes["base16-ocean.dark"];
 
     // The highlighted lines of a Bevy UI code file
     // The first 3 lines contain licensing information, we can skip them for the UI
-    let highlighted_lines = highlight_code(CODE);
+    let highlighted_lines = highlight_code(CODE, theme);
     let highlighted_lines = highlighted_lines.iter().skip(3);
 
     // Root with background color
@@ -76,7 +74,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 overflow: Overflow::Hidden,
                 ..default()
             },
-            color: background_color,
+            color: syntect_color_to_bevy_color(theme.settings.background.unwrap()).into(),
             ..default()
         })
         .with_children(|parent| {
