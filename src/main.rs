@@ -28,8 +28,9 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     // Colors
     let background_color = Color::hex("121212").unwrap().into();
 
-    // Code
-    let lines = CODE.split('\n');
+    // The lines of a Bevy UI code file
+    // The first 3 lines contain licensing information, we can skip them for the UI
+    let lines = CODE.split('\n').skip(3);
 
     // Root with background color
     commands
@@ -46,7 +47,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             ..default()
         })
         .with_children(|parent| {
-            for line in lines.take(50) {
+            for line in lines {
                 // Wrapper for each line
                 parent
                     .spawn_bundle(NodeBundle {
@@ -63,17 +64,14 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                     })
                     .with_children(|parent| {
                         // The actual line text
-                        parent.spawn_bundle(
-                            TextBundle::from_section(
-                                line,
-                                TextStyle {
-                                    font: font_regular.clone(),
-                                    font_size,
-                                    color: Color::WHITE,
-                                },
-                            )
-                            .with_style(Style { ..default() }),
-                        );
+                        parent.spawn_bundle(TextBundle::from_section(
+                            line,
+                            TextStyle {
+                                font: font_regular.clone(),
+                                font_size,
+                                color: Color::WHITE,
+                            },
+                        ));
                     });
             }
         });
